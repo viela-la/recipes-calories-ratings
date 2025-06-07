@@ -227,7 +227,7 @@ For my test statistic, I chose the mean difference instead of absolute mean diff
 
 First, I divided the DataFrame into two: recipes whose calorie count is higher than the overall average and recipes whose calorie count is lower. This simplifies classification of "high calorie" and "low calorie." I used the `calories` and `avg_rating` columns for the 1000 simulations, each time shuffling the `calories` column. I also calculated and stored the test statistic to create the below distribution:
 <iframe
-src = 'assets/hypoth-emp.html'
+src = 'assets/hypoth-emp1.html'
 width='800'
 height='600'
 frameborder='0'
