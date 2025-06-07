@@ -265,10 +265,20 @@ For my final model, I started with choosing the following features:
 
 - `total_fat_pdv`, `sugar_pdv`, `saturated_fat_pdv`, `carbohydrates_pdv` (quantitative): A bivariate graph for each of these columns' rating bins' averages revealed that recipes with low values for these nutritional categories are rated higher. Total fat, sugar, saturated fat, and carbohydrates  are usually equated with calories from a health perspective, as in a high count in one means a high count in another. This relationship also led me to believe I could use these columns to further improve my model. I transformed these columns with a RobustScaler to effectively handle outliers.
 
-I used a RandomForestClassifier again, but finetuned the `max_depth` and `n_estimators` hyperparameters using a GridSearchCV. The optimal values for these parameters were -- and --, respectively.
+I used a RandomForestClassifier again, but finetuned the `max_depth` and `n_estimators` hyperparameters using a GridSearchCV. The optimal values for these parameters were 2 and 12, respectively.
 
-The new model resulted in an F1 score of --.
+The new model resulted in an F1 score of **0.6867**, which is a **0.0038** improvement from the baseline model. Again, not especially high. The adjustments I had made weren't too effective
 
 # Fairness Analysis
 
-To evaluate the fairness of my model, I split the recipes into two groups: low carbs and high carbs. The split was done according to the median of `carbohydrates_pdv`, with those
+To evaluate the fairness of my model, I split the recipes into two groups: low carbs and high carbs. The split was done according to the median of `carbohydrates_pdv` (9.0), with the PDVs >= 9.0 being classified as `high_carb` and those with PDVs < 9.0 being classified as `low_carb`. I chose to split according to the median because the mean is prone to outliers, which could lead to a very uneven split. My evaluation metric of choice was **precision parity**. I think it's important to identify true positives when it comes to nutrition and ratings. People with dietary restrictions, such as consuming a certain amount of carbs, should be able to find good recipes that fit their needs.
+
+**Null Hypothesis**: My model is fair, and its precision for predicting the ratings of low-carb recipes is the same as its precision for high-carb recipes.
+
+**Alternative Hypothesis**: My model is unfair, and its precision for predicting the ratings of low-carb recipes is higher than its precision for high-carb recipes.
+
+**Test Statistic**: Difference in precision (low carb - high carb)
+
+**Significance Level**: 0.1
+
+My observed test statistic was **0.014**. For my permutation test, I created a new binary column `low_carb`, which contained True or False for each recipe according to the criteria I described above. I ran 500 simulations where I permutated that column, then calculated the test statistic each time. I found a p-level of 0.002, which is < 0.1, so I **reject the null hypothesis** that my model is fair. My model's precision for predicting the rating of recipes with low carbs is better than its precision for rating recipes with high carbs.
