@@ -282,3 +282,10 @@ To evaluate the fairness of my model, I split the recipes into two groups: low c
 **Significance Level**: 0.1
 
 My observed test statistic was **0.014**. For my permutation test, I created a new binary column `low_carb`, which contained True or False for each recipe according to the criteria I described above. I ran 500 simulations where I permutated that column, then calculated the test statistic each time. I found a p-level of 0.002, which is < 0.1, so I **reject the null hypothesis** that my model is fair. My model's precision for predicting the rating of recipes with low carbs is better than its precision for rating recipes with high carbs.
+
+<iframe
+src = 'assets/fairness.html'
+width='800'
+height='600'
+frameborder='0'
+></iframe>
