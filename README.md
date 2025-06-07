@@ -155,14 +155,120 @@ Interestingly, all of the averages all around generally decreased. Of course, hi
 # Assessment of Missingness
 
 ## NMAR Analysis
-The columns of `recipes_ints` with significant missingness are `rating`, `review`, and `description`. 
+The columns of `recipes_ints` with significant missingness are `rating`, `review`, and `description`. I suspect `rating` and `review` are NMAR because users don't always take the time to leave reviews on recipes, especially if they were indifferent about the outcome or otherwise didn't feel very strongly about it. Users who do leave reviews often do it out if they hold intense feelings towards the recipe.
+
+## Missingness Dependency
+### Dependent
+Here, I'll be testing the dependency of the `rating` column missingness upon the `calories` column using a permutation test.
+
+**Null Hypothesis**: The missingness of ratings does not depend on the number of calories in the recipe.
+
+**Alternate Hypothesis**: The missingness of ratings does depend on the number of calories in the recipe.
+
+**Test Statistic**: Absolute mean differences of calories between the group missing ratings and the group not missing ratings.
+
+**Significance Level**: 0.1
+
+The two distributions of missingness *look* similar.
+<iframe
+src = 'assets/cals-missing.html'
+width='800'
+height='600'
+frameborder='0'
+></iframe>
+
+I shuffled the missingness of the `rating` column in `recipes_ints` 500 times and calculated the absolute mean difference for each simulation. The **observed test statistic** is 69.01, shown on the empirical distribution graph below. I found a p-value of 0.0, which is < 0.05. I **reject the null hypothesis** and conclude that the the missingness of `rating` depends on `calories`. 
+<iframe
+src = 'assets/cals-missing-emp.html'
+width='800'
+height='600'
+frameborder='0'
+></iframe>
+
+### Independent
+Here, I'll be testing the independency of the `rating` column upon the `minutes` column using a permutation test, similar to before.
+
+**Null Hypothesis**: The missingness of ratings does not depend on the number of minutes in the recipe.
+
+**Alternate Hypothesis**: The missingness of ratings does depend on the number of minutes in the recipe.
+
+**Test Statistic**: Absolute mean differences of cooking time between the group missing ratings and the group not missing ratings.
+
+**Significance Level**: 0.1
+
+The two distributions of missingness are somewhat similar.
+<iframe
+src = 'assets/min-missing.html'
+width='800'
+height='600'
+frameborder='0'
+></iframe>
+
+Like in the dependent section, I shuffled the missingness of the `rating` colum 500 times and calculated the asbolute mean difference for each simulation. The **observed test statistic** is 51.45, shown on the graph below. I found a p-value of 0.118, which is > 0.05. I **fail to reject the null hypothesis** and conclude that the missingness of `rating` is independent on `minutes`, or the cooking time of the recipe.
+<iframe
+src = 'assets/min-missing-emp.html'
+width='800'
+height='600'
+frameborder='0'
+></iframe>
 
 # Hypothesis Testing
+I return to my original question of whether recipes with lower calories are rated better than those with higher calories. To reveal the relationship between calories and ratings, I used the `cals_avg_ratings` DataFrame for a permutation test.
+
+**Null Hypothesis**: All recipes are rated regardless of total calories.
+
+**Alternate Hypothesis**: Recipes with less calories are rated higher than recipes with more calories.
+
+**Test Statistic**: Mean difference between ratings of low-calorie recipes and high-calorie recipes.
+
+**Significance Level**: 0.1
+
+For my test statistic, I chose the mean difference instead of absolute mean difference because I'm measuring a directional difference between two distinct categories.
+
+First, I divided the DataFrame into two: recipes whose calorie count is higher than the overall average and recipes whose calorie count is lower. This simplifies classification of "high calorie" and "low calorie." I used the `calories` and `avg_rating` columns for the 1000 simulations, each time shuffling the `calories` column. I also calculated and stored the test statistic to create the below distribution:
+<iframe
+src = 'assets/hypoth-emp.html'
+width='800'
+height='600'
+frameborder='0'
+></iframe>
+
+The **observed test statistic** is 0.006 and the p-value is 0.09 -- which is < 0.1. I **reject the null hypothesis**. Recipes tend to be rated higher if they have less calories. User ratings may reflect the positivity associated not only with homemade meals but also health consciousness.
+
 
 # Framing a Prediction Problem
 
+Now, I plan to predict the **rating of a recipe** in the form of a **classification problem**. Since I'll be predicting the rating based on a discrete ordinal scale of 1-5 "stars", I'll be building a multiclass classifier model. 
+
+I chose `rating_bin` as the response variable because it classifies all ratings into distinct categories. There's significant correlation between rating and calorie count, so I may be able to use calories to make my predictions. 
+
+The metric I'll be using is the F1-score. As shown in the univariate analysis, there's a much higher number of recipes rated 3 or higher than lower -- causing imbalanced classes. If I were to use, say, accuracy as a metric, this imbalance would not be properly handled. 
+
+At the time of prediction, the information we have are all of the columns in the original `recipes` dataset, not yet the information in the `interactions` dataset. The `recipes` information is readily available at the time of viewing the recipe, regardless of any reviews or ratings left on them. 
+
 # Baseline Model
+
+For the baseline model, I used a Random Forest Classifier. These are the features I used:
+
+- `calories` (quantitative): As previously stated, I'll be utilizing the discovered correlation between low calorie count and high ratings in order to predict recipe ratings. I transformed this column using a RobustScaler so that any outliers are appropriately handled and they won't introduce bias.
+- `carbohydrates_pdv` (quantitative): A bivariate analysis revealed that low average carbohydrate PDVs are also correlated with higher ratings. Additionally, carbohydrate counts are commonly associated with calorie counts, since in the public eye low carbs = low calories = healthy = high rating. I figured this association could help my prediction model.
+
+The F1 score on the training data was **0.6829**. It's not especially low, but there's plenty of room for improvement.
 
 # Final Model
 
+For my final model, I started with choosing the following features:
+
+- `n_steps` (quantitative): A bivariate graph showed that recipes with less steps in the cooking process were, on average, rated higher than those with more steps. This may be because users prefer quicker cooking processes or less verbose instructions. This correlation led me to believe it would help improve my model. I used a RobustScaler to transform this column as I found a few extreme outliers that I wanted handled.
+
+- `calories` (quantitative): Like previously stated many times, there is a notable relationship between calories and ratings. I kept this column transformed with RobustScaler.
+
+- `total_fat_pdv`, `sugar_pdv`, `saturated_fat_pdv`, `carbohydrates_pdv` (quantitative): A bivariate graph for each of these columns' rating bins' averages revealed that recipes with low values for these nutritional categories are rated higher. Total fat, sugar, saturated fat, and carbohydrates  are usually equated with calories from a health perspective, as in a high count in one means a high count in another. This relationship also led me to believe I could use these columns to further improve my model. I transformed these columns with a RobustScaler to effectively handle outliers.
+
+I used a RandomForestClassifier again, but finetuned the `max_depth` and `n_estimators` hyperparameters using a GridSearchCV. The optimal values for these parameters were -- and --, respectively.
+
+The new model resulted in an F1 score of --.
+
 # Fairness Analysis
+
+To evaluate the fairness of my model, I split the recipes into two groups: low carbs and high carbs. The split was done according to the median of `carbohydrates_pdv`, with those
